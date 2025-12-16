@@ -38,27 +38,24 @@ export class WishlistRepository {
     }
 
     async addItemToWishlist(params: AddWishlistItemParams) {
-        const existingWishlist = await this._model.findOne({
-            user: params.userId,
-            "items.product": params.productId
-        });
-
-        if (existingWishlist) {
-            return existingWishlist;
-        }
-
-        const newItem = {
-            product: params.productId,
-            priceWhenAdded: params.priceWhenAdded,
-            addedAt: new Date()
-        };
-
         return this._model.findOneAndUpdate(
             { user: params.userId },
-            { $push: { items: newItem }},
-            { new: true, upsert: true }
+            {
+                $addToSet: {
+                    items: {
+                        product: params.productId,
+                        priceWhenAdded: params.priceWhenAdded,
+                        addedAt: new Date()
+                    }
+                }
+            },
+            {
+                new: true,
+                upsert: true
+            }
         );
     }
+
 
     async removeItemFromWishlist(userId: string, productId: string) {
         return this._model.findOneAndUpdate(

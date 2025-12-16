@@ -188,6 +188,10 @@ class ShipmentService {
       }
 
       // Assign courier and get AWB
+      if (!selectedCourierId) {
+        throw new BadRequestError('Failed to select a courier');
+      }
+
       const awbResponse = await shiprocketService.assignCourier(
         parseInt(shipment.shiprocketShipmentId),
         selectedCourierId
