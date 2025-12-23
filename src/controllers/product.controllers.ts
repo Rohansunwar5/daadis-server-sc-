@@ -141,8 +141,14 @@ export const removeSubcategory = async (req: Request, res: Response, next: NextF
   next(response);
 };
 
-// PUBLIC LIGHTWEIGHT LIST
-export const getAllProductsLight = async (req: Request, res: Response, next: NextFunction) => {
-  const response = await productService.getAllProductsLight();
+export const getAllProductsLight = async ( req: Request, res: Response, next: NextFunction ) => {
+  const page = Math.max(Number(req.query.page) || 1, 1);
+  const limit = Math.min(Number(req.query.limit) || 12, 50);
+
+  const response = await productService.getAllProductsLight({
+    page,
+    limit,
+  });
+
   next(response);
 };

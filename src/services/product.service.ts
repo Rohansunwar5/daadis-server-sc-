@@ -157,9 +157,10 @@ class ProductService {
         return true;
     }
 
-    async getAllProductsLight() {
-        return this._productRepository.getAllProductsLight();
+    async getAllProductsLight(params: { page: number; limit: number }) {
+        return this._productRepository.getAllProductsLight(params);
     }
+
 }
 
 export default new ProductService();

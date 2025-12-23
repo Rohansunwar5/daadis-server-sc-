@@ -3,7 +3,6 @@ import { handleShiprocketWebhook } from '../controllers/shiprocket.webhook.contr
 
 const webhookRouter = Router();
 
-// Shiprocket webhook endpoint
 webhookRouter.post('/shiprocket', handleShiprocketWebhook);
 
 export default webhookRouter;

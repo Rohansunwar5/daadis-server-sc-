@@ -213,17 +213,42 @@ class ProductRepository {
         return result.deletedCount === 1;
     }
 
-    async getAllProductsLight() {
-        return this._model.aggregate([
+    async getAllProductsLight(params: { page: number; limit: number }) {
+        const { page, limit } = params;
+        const skip = (page - 1) * limit;
+
+        const [result] = await this._model.aggregate([
             { $match: { isActive: true } },
+
             {
-                $project: {
+            $facet: {
+                data: [
+                {
+                    $project: {
                     _id: 1,
                     name: 1,
-                    image: { $arrayElemAt: ["$images", 0] } 
-                }
-            }
+                    image: { $arrayElemAt: ["$images", 0] },
+                    },
+                },
+                { $skip: skip },
+                { $limit: limit },
+                ],
+                totalCount: [{ $count: "count" }],
+            },
+            },
         ]);
+
+        const total = result.totalCount[0]?.count || 0;
+
+        return {
+            data: result.data,
+            meta: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 }
 
