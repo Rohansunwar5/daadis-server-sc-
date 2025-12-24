@@ -7,6 +7,7 @@ import productRepository, {
     UpdateProductParams,
     ListProductsParams,
 } from "../repository/product.repository";
+import { uploadProductImageToS3 } from "../utils/s3.util";
 
 class ProductService {
     constructor(private readonly _productRepository = productRepository) {}
@@ -159,6 +160,24 @@ class ProductService {
 
     async getAllProductsLight(params: { page: number; limit: number }) {
         return this._productRepository.getAllProductsLight(params);
+    }
+
+    async handleImageUploads(params: { files?: Express.Multer.File[]; existingImages?: string[] }): Promise<string[]> {
+        let imageUrls: string[] = [];
+
+        if (params.existingImages) {
+            imageUrls = Array.isArray(params.existingImages) ? params.existingImages : [params.existingImages];
+        }
+
+        if (params.files && params.files.length > 0) {
+            const uploadPromises = params.files.map((file) => uploadProductImageToS3(file));
+            const newImageUrls = await Promise.all(uploadPromises);
+            imageUrls = [...imageUrls, ...newImageUrls.map(img => img.url)];
+        }
+
+        if (imageUrls.length === 0) throw new BadRequestError('At least one product image is required');
+
+        return imageUrls;
     }
 
 }

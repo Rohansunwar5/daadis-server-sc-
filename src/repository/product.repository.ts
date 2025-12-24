@@ -141,14 +141,6 @@ class ProductRepository {
         });
     }
 
-    async getProductsByCategory(category: string, page = 1, limit = 20) {
-        return this.listProducts({ category, page, limit });
-    }
-
-    async getProductsBySubcategory(subcategory: string, page = 1, limit = 20) {
-        return this.listProducts({ subcategory, page, limit });
-    }
-
     async addSubcategory(productId: string, sub: string) {
         const result = await this._model.updateOne(
             { _id: productId },
@@ -214,11 +206,28 @@ class ProductRepository {
     }
 
     async getAllProductsLight(params: { page: number; limit: number }) {
-        const { page, limit } = params;
+        return this.listProductsLight(params);
+    }
+
+    async getProductsByCategory(category: string, page = 1, limit = 20) {
+        return this.listProductsLight({ category, page, limit });
+    }
+
+    async getProductsBySubcategory(subcategory: string, page = 1, limit = 20) {
+        return this.listProductsLight({ subcategory, page, limit });
+    }
+
+
+    async listProductsLight(params: { category?: string; subcategory?: string; page: number; limit: number; }) {
+        const { category, subcategory, page, limit } = params;
         const skip = (page - 1) * limit;
 
+        const match: any = { isActive: true };
+        if (category) match.category = category;
+        if (subcategory) match.subcategory = subcategory;
+
         const [result] = await this._model.aggregate([
-            { $match: { isActive: true } },
+            { $match: match },
 
             {
             $facet: {
@@ -227,13 +236,17 @@ class ProductRepository {
                     $project: {
                     _id: 1,
                     name: 1,
-                    image: { $arrayElemAt: ["$images", 0] },
+                    images: 1,
+                    price: 1,
+                    originalPrice: 1,
+                    category: 1,
+                    subcategory: 1,
                     },
                 },
                 { $skip: skip },
                 { $limit: limit },
                 ],
-                totalCount: [{ $count: "count" }],
+                totalCount: [{ $count: 'count' }],
             },
             },
         ]);
@@ -250,6 +263,7 @@ class ProductRepository {
             },
         };
     }
+
 }
 
 export default new ProductRepository();

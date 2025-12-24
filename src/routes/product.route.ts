@@ -2,7 +2,8 @@ import { Router } from "express";
 import { asyncHandler } from "../utils/asynchandler";
 import isAdminLoggedIn from "../middlewares/isAdminLoggedIn.middleware";
 import { createProductValidator, updateProductValidator, searchProductValidator, updateStockValidator, reduceStockValidator } from "../middlewares/validators/product.validator";
-import { createProduct, updateProduct, deleteProduct, getProductById, getProductByCode, listProducts, searchProducts, getProductsByCategory, getProductsBySubcategory, getAvailableSize, getProductStock, updateProductStock, reduceProductStock, addSubcategory, removeSubcategory, getAllProductsLight } from "../controllers/product.controllers";
+import { createProduct, updateProduct, deleteProduct, getProductById, getProductByCode, listProducts, searchProducts, getProductsByCategory, getProductsBySubcategory, getAvailableSize, getProductStock, updateProductStock, reduceProductStock, addSubcategory, removeSubcategory, getAllProductsLight, uploadAssets } from "../controllers/product.controllers";
+import { uploadImage } from "../middlewares/multer.middleware";
 
 const productRouter = Router();
 
@@ -22,5 +23,6 @@ productRouter.get( "/subcategory/:subcategory", asyncHandler(getProductsBySubcat
 productRouter.get( "/:id/available-sizes", asyncHandler(getAvailableSize));
 productRouter.get( "/:id/stock", asyncHandler(getProductStock));
 productRouter.get( "/public/light", asyncHandler(getAllProductsLight));
+productRouter.post( "/upload/assets", isAdminLoggedIn, uploadImage, asyncHandler(uploadAssets));
 
 export default productRouter;
