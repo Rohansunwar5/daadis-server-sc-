@@ -11,10 +11,6 @@ class ShiprocketWebhookService {
   private secretKey = config.SHIPROCKET_SECRET_KEY;
   private categoryRepository = new CategoryRepository();
 
-  /**
-   * Generate HMAC-SHA256 signature in Base64 format
-   * Used for outgoing webhooks TO Shiprocket
-   */
   private generateHMAC(data: any): string {
     const dataString = JSON.stringify(data);
     return crypto
@@ -186,7 +182,7 @@ class ShiprocketWebhookService {
     // You'll need to handle cart clearing differently
     // Option 1: Store cart_id in your cart and clear by cart_id
     // Option 2: Clear cart when user completes checkout on frontend
-    
+
     if (payload.cart_id) {
       try {
         // If you have a method to clear cart by Shiprocket cart_id
@@ -204,7 +200,7 @@ class ShiprocketWebhookService {
 
     // ✅ Check if order exists first
     const order = await orderService.getOrderByShiprocketId(payload.order_id);
-    
+
     if (!order) {
       console.warn('[Shiprocket Webhook] Order not found for failure update:', payload.order_id);
       // This is OK - order might not have been created yet if payment failed early
@@ -224,7 +220,7 @@ class ShiprocketWebhookService {
     console.log('[Shiprocket Webhook] Processing order cancellation:', payload.order_id);
 
     const order = await orderService.getOrderByShiprocketId(payload.order_id);
-    
+
     if (!order) {
       console.warn('[Shiprocket Webhook] Order not found for cancellation:', payload.order_id);
       return { acknowledged: true };
@@ -246,7 +242,7 @@ class ShiprocketWebhookService {
     });
 
     const order = await orderService.getOrderByShiprocketId(payload.order_id);
-    
+
     if (!order) {
       console.warn('[Shiprocket Webhook] Order not found for status update:', payload.order_id);
       return { acknowledged: true };
@@ -283,7 +279,7 @@ class ShiprocketWebhookService {
       DELIVERED: 'DELIVERED',
       RTO: 'RETURNED',
       CANCELLED: 'CANCELLED',
-      
+
       // Additional possible statuses
       PICKUP_SCHEDULED: 'PROCESSING',
       MANIFESTED: 'PROCESSING',
@@ -293,7 +289,7 @@ class ShiprocketWebhookService {
     };
 
     const mappedStatus = statusMap[status?.toUpperCase()];
-    
+
     if (!mappedStatus) {
       console.warn('[Shiprocket Webhook] Unknown shipment status:', status);
       return 'PROCESSING';

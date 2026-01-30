@@ -40,14 +40,20 @@ export const verifyResetPasswordCode = async (req: Request, res: Response, next:
 export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
     const { code } = req.body;
     const { password } = req.body;
-    const response = await adminAuthService.resetPassword( code, password );
+    const response = await adminAuthService.resetPassword(code, password);
 
     next(response);
 }
 
-export const syncProductToShiprocket  = async (req: Request, res: Response, next: NextFunction) => {
+export const syncProductToShiprocket = async (req: Request, res: Response, next: NextFunction) => {
     const { productId } = req.params;
-    await shiprocketSyncService.syncProduct(productId);
+    const result = await shiprocketSyncService.syncProduct(productId);
 
-    next({ message: 'Product synced with Shiprocket' });
+    next({ message: 'Product synced with Shiprocket', data: result });
+}
+
+export const syncAllProductsToShiprocket = async (req: Request, res: Response, next: NextFunction) => {
+    const result = await shiprocketSyncService.syncAllProducts();
+
+    next({ message: 'All products synced with Shiprocket', data: result });
 }

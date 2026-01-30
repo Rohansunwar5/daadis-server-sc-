@@ -15,25 +15,9 @@ const shiprocketCatalogRouter = Router();
 // For now, they're open - add your authentication middleware
 
 // Catalog Sync APIs - Called by Shiprocket
-shiprocketCatalogRouter.get(
-  '/products',
-  asyncHandler(fetchProducts)
-);
-
-shiprocketCatalogRouter.get(
-  '/products-by-collection',
-  shiprocketIpMiddleware,
-  asyncHandler(fetchProductsByCollection)
-);
-
-shiprocketCatalogRouter.get(
-  '/collections',
-  asyncHandler(fetchCollections)
-);
-
-shiprocketCatalogRouter.get(
-  '/webhook-data/:productId',
-  asyncHandler(getProductWebhookData)
-);
+shiprocketCatalogRouter.get('/products', asyncHandler(fetchProducts));
+shiprocketCatalogRouter.get('/products-by-collection', shiprocketIpMiddleware, asyncHandler(fetchProductsByCollection));
+shiprocketCatalogRouter.get('/collections', asyncHandler(fetchCollections));
+shiprocketCatalogRouter.get('/webhook-data/:productId', asyncHandler(getProductWebhookData));
 
 export default shiprocketCatalogRouter;

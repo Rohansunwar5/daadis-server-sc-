@@ -13,32 +13,10 @@ import { cancelOrderValidator, updateOrderStatusValidator } from '../middlewares
 
 const orderRouter = Router();
 
-// Get all orders for logged-in user
 orderRouter.get('/', isLoggedIn, asyncHandler(getUserOrders));
-
-// Get specific order by ID
 orderRouter.get('/:orderId', isLoggedIn, asyncHandler(getOrderById));
-
-// Update order status (admin/internal use)
-orderRouter.patch(
-  '/:orderId/status',
-  isLoggedIn,
-  updateOrderStatusValidator,
-  asyncHandler(updateOrderStatus)
-);
-
-orderRouter.patch(
-  '/:orderId/tracking',
-  isLoggedIn,
-  asyncHandler(updateTrackingInfo)
-);
-
-// Cancel order
-orderRouter.post(
-  '/:orderId/cancel',
-  isLoggedIn,
-  cancelOrderValidator,
-  asyncHandler(cancelOrder)
-);
+orderRouter.patch('/:orderId/status', isLoggedIn, updateOrderStatusValidator, asyncHandler(updateOrderStatus));
+orderRouter.patch('/:orderId/tracking', isLoggedIn, asyncHandler(updateTrackingInfo));
+orderRouter.post('/:orderId/cancel', isLoggedIn, cancelOrderValidator, asyncHandler(cancelOrder));
 
 export default orderRouter;

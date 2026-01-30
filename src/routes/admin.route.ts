@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../utils/asynchandler";
-import { adminLogin, adminProfile, adminSignup, generateResetPasswordLink, resetPassword, syncProductToShiprocket, verifyResetPasswordCode } from "../controllers/admin.controller";
+import { adminLogin, adminProfile, adminSignup, generateResetPasswordLink, resetPassword, syncProductToShiprocket, syncAllProductsToShiprocket, verifyResetPasswordCode } from "../controllers/admin.controller";
 import isAdminLoggedIn from "../middlewares/isAdminLoggedIn.middleware";
 import { loginValidator, signupValidator } from "../middlewares/validators/auth.validator";
 
@@ -13,5 +13,6 @@ adminRouter.post('/reset-password', asyncHandler(generateResetPasswordLink));
 adminRouter.get('/reset-password/:code', asyncHandler(verifyResetPasswordCode));
 adminRouter.patch('/reset-password/:code', asyncHandler(resetPassword));
 adminRouter.post('/shiprocket/sync/product/:productId', asyncHandler(syncProductToShiprocket));
+adminRouter.post('/shiprocket/sync/all', asyncHandler(syncAllProductsToShiprocket));
 
 export default adminRouter;

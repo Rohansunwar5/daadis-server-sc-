@@ -5,10 +5,8 @@ import cartService from './cart.service';
 import { BadRequestError } from '../errors/bad-request.error';
 
 class ShiprocketCheckoutService {
-  private baseUrl =
-  config.NODE_ENV === 'production'
-    ? 'https://checkout-api.shiprocket.com'
-    : 'https://fastrr-api-dev.pickrr.com';
+  // Always use the URL from config (production by default)
+  private baseUrl = config.SHIPROCKET_BASE_URL || 'https://checkout-api.shiprocket.com';
   private apiKey = config.SHIPROCKET_API_KEY;
   private secretKey = config.SHIPROCKET_SECRET_KEY;
 
