@@ -65,15 +65,29 @@ class ShiprocketCheckoutService {
     } catch (error) {
       // Log the actual error response from Shiprocket
       if (error instanceof AxiosError && error.response) {
+        // Parse the data if it's a string
+        let responseData = error.response.data;
+        if (typeof responseData === 'string') {
+          try {
+            responseData = JSON.parse(responseData);
+          } catch {
+            // Keep as string if parsing fails
+          }
+        }
+
         console.error('[Shiprocket Checkout] Error Response:', {
           status: error.response.status,
           statusText: error.response.statusText,
-          data: JSON.stringify(error.response.data, null, 2),
-          headers: error.response.headers,
+          data: responseData,
         });
 
-        // Throw with actual error message from Shiprocket
-        const shiprocketError = error.response.data?.message || error.response.data?.error || 'Unknown Shiprocket error';
+        // Extract error message from nested structure
+        const shiprocketError =
+          responseData?.error?.message ||
+          responseData?.message ||
+          responseData?.error ||
+          'Unknown Shiprocket error';
+
         throw new BadRequestError(`Shiprocket Checkout Error: ${shiprocketError}`);
       }
       throw error;
