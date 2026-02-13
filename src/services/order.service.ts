@@ -160,12 +160,12 @@ class OrderService {
       shippingAmount: totals.shippingAmount,
       gstAmount: totals.gstAmount,
       totalAmount: totals.totalAmount,
-      appliedCoupon: cart.appliedCoupon ? {
+      appliedCoupon: cart.appliedCoupon && cart.appliedCoupon.discountId ? {
         code: cart.appliedCoupon.code,
         discountId: cart.appliedCoupon.discountId.toString(),
         discountAmount: cart.appliedCoupon.discountAmount,
       } : undefined,
-      appliedVoucher: cart.appliedVoucher ? {
+      appliedVoucher: cart.appliedVoucher && cart.appliedVoucher.discountId ? {
         code: cart.appliedVoucher.code,
         discountId: cart.appliedVoucher.discountId.toString(),
         discountAmount: cart.appliedVoucher.discountAmount,
