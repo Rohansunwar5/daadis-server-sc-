@@ -98,6 +98,23 @@ const addressSchema = new mongoose.Schema({
   },
 });
 
+const guestInfoSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  email: {
+    type: String,
+    trim: true,
+  },
+  phone: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: {
@@ -121,6 +138,10 @@ const orderSchema = new mongoose.Schema(
     isGuestOrder: {
       type: Boolean,
       default: false,
+    },
+    guestInfo: {
+      type: guestInfoSchema,
+      required: false,
     },
     items: {
       type: [orderItemSchema],
@@ -301,6 +322,12 @@ export interface IOrderAddress {
   country: string;
 }
 
+export interface IGuestInfo {
+  name: string;
+  email?: string;
+  phone: string;
+}
+
 export interface IAppliedDiscount {
   code: string;
   discountId: string;
@@ -313,6 +340,7 @@ export interface IOrder extends Document {
   userId?: string;
   sessionId?: string;
   isGuestOrder: boolean;
+  guestInfo?: IGuestInfo;
   items: IOrderItem[];
   subtotal: number;
   discountAmount: number;

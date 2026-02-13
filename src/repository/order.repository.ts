@@ -1,10 +1,11 @@
-import orderModel, { IOrder, IOrderItem, IOrderAddress } from '../models/order.model';
+import orderModel, { IOrder, IOrderItem, IOrderAddress, IGuestInfo } from '../models/order.model';
 
 export interface ICreateOrderParams {
   orderNumber: string;
   userId?: string;
   sessionId?: string;
   isGuestOrder: boolean;
+  guestInfo?: IGuestInfo;
   items: IOrderItem[];
   subtotal: number;
   discountAmount: number;
@@ -68,7 +69,7 @@ export class OrderRepository {
   async updateOrderStatus(params: IUpdateOrderStatusParams): Promise<IOrder | null> {
     const { orderId, status, paymentStatus, shipmentStatus } = params;
     const updateData: any = { status };
-    
+
     if (paymentStatus) {
       updateData.paymentStatus = paymentStatus;
     }
@@ -122,14 +123,14 @@ export class OrderRepository {
     skip?: number
   ): Promise<IOrder[]> {
     const query = this._model.find({ status }).sort({ createdAt: -1 });
-    
+
     if (skip) {
       query.skip(skip);
     }
     if (limit) {
       query.limit(limit);
     }
-    
+
     return query;
   }
 

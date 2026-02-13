@@ -3,11 +3,11 @@ import productModel from '../models/product.model';
 import cartModel from '../models/cart.model';
 import { NotFoundError } from '../errors/not-found.error';
 import { BadRequestError } from '../errors/bad-request.error';
-import { IOrderAddress, IOrderItem } from '../models/order.model';
+import { IOrderAddress, IOrderItem, IGuestInfo } from '../models/order.model';
 import { nanoid } from 'nanoid';
 
 class OrderService {
-  constructor(private readonly _orderRepo: OrderRepository) {}
+  constructor(private readonly _orderRepo: OrderRepository) { }
 
   private generateOrderNumber(): string {
     const timestamp = Date.now();
@@ -115,7 +115,15 @@ class OrderService {
     billingAddress?: IOrderAddress;
     customerNotes?: string;
     source?: string;
+    guestInfo?: IGuestInfo;
   }) {
+    // For guest orders, validate guestInfo
+    if (!params.userId && !params.guestInfo?.name) {
+      throw new BadRequestError('Guest orders require guestInfo with at least name and phone');
+    }
+    if (!params.userId && !params.guestInfo?.phone) {
+      throw new BadRequestError('Guest orders require guestInfo with at least name and phone');
+    }
     // Fetch cart
     const cart = await cartModel.findOne(
       params.userId
@@ -143,6 +151,7 @@ class OrderService {
       userId: params.userId,
       sessionId: params.sessionId,
       isGuestOrder: !params.userId,
+      guestInfo: !params.userId ? params.guestInfo : undefined,
       items: validatedItems,
       subtotal: totals.subtotal,
       discountAmount: totals.discountAmount,

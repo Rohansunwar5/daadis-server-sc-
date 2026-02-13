@@ -4,7 +4,7 @@ import paymentService from '../services/payment.service';
 
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   const userId = req.user?._id;
-  const { sessionId, shippingAddress, billingAddress, customerNotes, source } = req.body;
+  const { sessionId, shippingAddress, billingAddress, customerNotes, source, guestInfo } = req.body;
 
   const order = await orderService.createOrderFromCart({
     userId,
@@ -13,6 +13,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
     billingAddress,
     customerNotes,
     source,
+    guestInfo,
   });
 
   next({ success: true, data: order });
