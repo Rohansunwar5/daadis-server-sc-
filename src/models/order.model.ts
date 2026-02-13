@@ -269,6 +269,12 @@ const orderSchema = new mongoose.Schema(
       trim: true,
       maxLength: 500,
     },
+    paymentMethod: {
+      type: String,
+      enum: ['cod', 'prepaid'],
+      default: 'cod',
+      required: true,
+    },
     source: {
       type: String,
       enum: ['web', 'mobile', 'admin'],
@@ -351,6 +357,7 @@ export interface IOrder extends Document {
   appliedVoucher?: IAppliedDiscount;
   shippingAddress: IOrderAddress;
   billingAddress: IOrderAddress;
+  paymentMethod: 'cod' | 'prepaid';
   paymentId?: string;
   shipmentId?: string;
   status: string;

@@ -5,6 +5,7 @@ import { NotFoundError } from '../errors/not-found.error';
 import { BadRequestError } from '../errors/bad-request.error';
 import { IOrderAddress, IOrderItem, IGuestInfo } from '../models/order.model';
 import { nanoid } from 'nanoid';
+import paymentService from './payment.service';
 
 class OrderService {
   constructor(private readonly _orderRepo: OrderRepository) { }
@@ -116,6 +117,7 @@ class OrderService {
     customerNotes?: string;
     source?: string;
     guestInfo?: IGuestInfo;
+    paymentMethod?: 'cod' | 'prepaid';
   }) {
     // For guest orders, validate guestInfo
     if (!params.userId && !params.guestInfo?.name) {
@@ -172,10 +174,19 @@ class OrderService {
       billingAddress: params.billingAddress || params.shippingAddress,
       customerNotes: params.customerNotes,
       source: params.source || 'web',
+      paymentMethod: params.paymentMethod || 'cod',
     });
 
     // Deactivate cart after order creation
     await cartModel.findByIdAndUpdate(cart._id, { isActive: false });
+
+    // If COD, process payment immediately
+    if (params.paymentMethod === 'cod' || !params.paymentMethod) {
+      await paymentService.processCodPayment(order._id);
+      // Re-fetch to get updated status
+      const confirmedOrder = await this._orderRepo.getOrderById(order._id);
+      return confirmedOrder;
+    }
 
     return order;
   }

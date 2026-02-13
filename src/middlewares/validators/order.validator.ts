@@ -35,6 +35,11 @@ export const createOrderValidator = [
         .isString()
         .withMessage('shippingAddress.pincode is required'),
 
+    body('paymentMethod')
+        .optional()
+        .isIn(['cod', 'prepaid'])
+        .withMessage('paymentMethod must be either cod or prepaid'),
+
     body('guestInfo.name')
         .optional()
         .isString()

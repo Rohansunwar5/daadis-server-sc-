@@ -55,6 +55,10 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       index: true,
     },
+    razorpayOrderId: {
+      type: String,
+      index: true,
+    },
     transactionId: {
       type: String,
       index: true,
@@ -125,6 +129,7 @@ export interface IPayment extends Document {
   currency: string;
   shiprocketCheckoutId?: string;
   shiprocketOrderId?: string;
+  razorpayOrderId?: string;
   transactionId?: string;
   gatewayTransactionId?: string;
   checkoutUrl?: string;

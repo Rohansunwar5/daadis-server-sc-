@@ -1,6 +1,7 @@
 import { PaymentRepository } from '../repository/payment.repository';
 import { OrderRepository } from '../repository/order.repository';
-import shiprocketService from './shiprocket.service';
+import razorpayService from './razorpay.service';
+import config from '../config';
 import { NotFoundError } from '../errors/not-found.error';
 import { BadRequestError } from '../errors/bad-request.error';
 import { InternalServerError } from '../errors/internal-server.error';
@@ -9,7 +10,7 @@ class PaymentService {
   constructor(
     private readonly _paymentRepo: PaymentRepository,
     private readonly _orderRepo: OrderRepository
-  ) {}
+  ) { }
 
   async createPayment(params: {
     orderId: string;
@@ -19,6 +20,8 @@ class PaymentService {
     provider: string;
     amount: number;
     method?: string;
+    status?: string;
+    razorpayOrderId?: string;
   }) {
     const payment = await this._paymentRepo.createPayment({
       orderId: params.orderId,
@@ -30,80 +33,118 @@ class PaymentService {
       method: params.method,
     });
 
+    // If razorpayOrderId provided, update it
+    if (params.razorpayOrderId) {
+      await this._paymentRepo.updatePayment(payment._id, {
+        razorpayOrderId: params.razorpayOrderId,
+      });
+    }
+
+    // If status is completed (COD), mark it right away
+    if (params.status === 'completed') {
+      await this._paymentRepo.markPaymentCompleted(
+        payment._id,
+        `cod_${payment._id}`, // COD transaction ID
+        undefined,
+        'cod',
+        undefined
+      );
+    }
+
     // Link payment to order
     await this._orderRepo.updateOrderPaymentId(params.orderId, payment._id);
 
     return payment;
   }
 
-  async initiateShiprocketCheckout(params: {
-    orderId: string;
-    shippingAddress: {
-      name: string;
-      email: string;
-      phone: string;
-      addressLine1: string;
-      city: string;
-      state: string;
-      pincode: string;
-      country: string;
-    };
-  }) {
-    const order = await this._orderRepo.getOrderById(params.orderId);
+  /**
+   * COD Payment Flow
+   * Creates a completed payment record and confirms the order immediately.
+   */
+  async processCodPayment(orderId: string) {
+    const order = await this._orderRepo.getOrderById(orderId);
     if (!order) {
       throw new NotFoundError('Order not found');
     }
 
-    // Check if payment already exists for this order
-    let payment = await this._paymentRepo.getPaymentByOrderId(params.orderId);
+    // Check if payment already exists
+    const existingPayment = await this._paymentRepo.getPaymentByOrderId(orderId);
+    if (existingPayment) {
+      throw new BadRequestError('Payment already exists for this order');
+    }
 
-    if (!payment) {
+    // Create COD payment record (immediately completed)
+    const payment = await this.createPayment({
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      userId: order.userId,
+      sessionId: order.sessionId,
+      provider: 'cod',
+      amount: order.totalAmount,
+      method: 'cod',
+      status: 'completed',
+    });
+
+    // Confirm the order
+    await this._orderRepo.updateOrderStatus({
+      orderId: order._id,
+      status: 'confirmed',
+      paymentStatus: 'completed',
+    });
+
+    return payment;
+  }
+
+  /**
+   * Razorpay Payment Flow
+   * Creates a Razorpay order, stores the razorpayOrderId, and returns
+   * the details needed for the frontend Razorpay checkout modal.
+   * 
+   * Razorpay order statuses: created → attempted → paid
+   * Razorpay payment statuses: created → authorized → captured / failed
+   */
+  async initiateRazorpayPayment(orderId: string) {
+    const order = await this._orderRepo.getOrderById(orderId);
+    if (!order) {
+      throw new NotFoundError('Order not found');
+    }
+
+    // Check if payment already exists
+    let payment = await this._paymentRepo.getPaymentByOrderId(orderId);
+
+    if (payment && payment.razorpayOrderId) {
+      // Return existing Razorpay order details for retry
+      return {
+        paymentId: payment._id,
+        razorpayOrderId: payment.razorpayOrderId,
+        razorpayKeyId: config.RAZORPAY_KEY_ID,
+        amount: order.totalAmount * 100, // paise
+        currency: 'INR',
+        orderNumber: order.orderNumber,
+      };
+    }
+
+    try {
+      // Create Razorpay order (amount in paise)
+      const razorpayOrder = await razorpayService.createOrder(
+        order._id,
+        order.totalAmount * 100, // Convert to paise
+        'INR',
+        { orderNumber: order.orderNumber }
+      );
+
       // Create payment record
       payment = await this.createPayment({
         orderId: order._id,
         orderNumber: order.orderNumber,
         userId: order.userId,
         sessionId: order.sessionId,
-        provider: 'shiprocket',
+        provider: 'razorpay',
         amount: order.totalAmount,
-      });
-    }
-
-    // Check if checkout already created
-    if (payment.shiprocketCheckoutId && payment.checkoutUrl) {
-      return {
-        paymentId: payment._id,
-        checkoutUrl: payment.checkoutUrl,
-        shiprocketCheckoutId: payment.shiprocketCheckoutId,
-      };
-    }
-
-    try {
-      // Create Shiprocket Quick Checkout
-      const checkoutResponse = await shiprocketService.createQuickCheckout({
-        order_id: order.orderNumber,
-        order_amount: order.totalAmount,
-        customer_name: params.shippingAddress.name,
-        customer_email: params.shippingAddress.email,
-        customer_phone: params.shippingAddress.phone,
-        billing_address: params.shippingAddress.addressLine1,
-        billing_city: params.shippingAddress.city,
-        billing_state: params.shippingAddress.state,
-        billing_pincode: params.shippingAddress.pincode,
-        billing_country: params.shippingAddress.country,
-        payment_method: 'prepaid',
+        razorpayOrderId: razorpayOrder.id,
       });
 
-      // Update payment with checkout details
-      await this._paymentRepo.updatePaymentCheckoutDetails(
-        payment._id,
-        checkoutResponse.checkout_id,
-        checkoutResponse.order_id,
-        checkoutResponse.checkout_url,
-        checkoutResponse
-      );
-
-      // Update order status
+      // Update order status to payment_pending
       await this._orderRepo.updateOrderStatus({
         orderId: order._id,
         status: 'payment_pending',
@@ -112,13 +153,70 @@ class PaymentService {
 
       return {
         paymentId: payment._id,
-        checkoutUrl: checkoutResponse.checkout_url,
-        shiprocketCheckoutId: checkoutResponse.checkout_id,
+        razorpayOrderId: razorpayOrder.id,
+        razorpayKeyId: config.RAZORPAY_KEY_ID,
+        amount: order.totalAmount * 100,
+        currency: 'INR',
+        orderNumber: order.orderNumber,
       };
     } catch (error: any) {
-      console.error('Shiprocket checkout initiation error:', error);
-      throw new InternalServerError('Failed to initiate payment checkout');
+      console.error('Razorpay payment initiation error:', error);
+      throw new InternalServerError('Failed to initiate Razorpay payment');
     }
+  }
+
+  /**
+   * Verify Razorpay Payment
+   * After the frontend Razorpay checkout modal completes, verify the signature
+   * and confirm the order.
+   * 
+   * Razorpay sends: razorpay_order_id, razorpay_payment_id, razorpay_signature
+   */
+  async verifyRazorpayPayment(params: {
+    orderId: string;
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }) {
+    // Verify signature
+    const isValid = await razorpayService.verifyPaymentSignature(
+      params.razorpayOrderId,
+      params.razorpayPaymentId,
+      params.razorpaySignature
+    );
+
+    if (!isValid) {
+      throw new BadRequestError('Invalid payment signature');
+    }
+
+    // Find payment by razorpayOrderId
+    const payment = await this._paymentRepo.getPaymentByRazorpayOrderId(params.razorpayOrderId);
+    if (!payment) {
+      throw new NotFoundError('Payment not found');
+    }
+
+    // Idempotency check
+    if (payment.status === 'completed') {
+      return payment;
+    }
+
+    // Mark payment as completed
+    const updatedPayment = await this._paymentRepo.markPaymentCompleted(
+      payment._id,
+      params.razorpayPaymentId,        // transactionId
+      params.razorpayOrderId,           // gatewayTransactionId
+      'razorpay',                        // method
+      { razorpaySignature: params.razorpaySignature }
+    );
+
+    // Confirm the order
+    await this._orderRepo.updateOrderStatus({
+      orderId: payment.orderId,
+      status: 'confirmed',
+      paymentStatus: 'completed',
+    });
+
+    return updatedPayment;
   }
 
   async handlePaymentSuccess(params: {

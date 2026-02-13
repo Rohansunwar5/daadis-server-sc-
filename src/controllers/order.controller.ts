@@ -4,7 +4,7 @@ import paymentService from '../services/payment.service';
 
 export const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   const userId = req.user?._id;
-  const { sessionId, shippingAddress, billingAddress, customerNotes, source, guestInfo } = req.body;
+  const { sessionId, shippingAddress, billingAddress, customerNotes, source, guestInfo, paymentMethod } = req.body;
 
   const order = await orderService.createOrderFromCart({
     userId,
@@ -14,6 +14,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
     customerNotes,
     source,
     guestInfo,
+    paymentMethod,
   });
 
   next({ success: true, data: order });
@@ -21,14 +22,24 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
 
 export const initiatePayment = async (req: Request, res: Response, next: NextFunction) => {
   const { orderId } = req.params;
-  const { shippingAddress } = req.body;
 
-  const paymentDetails = await paymentService.initiateShiprocketCheckout({
-    orderId,
-    shippingAddress,
-  });
+  const paymentDetails = await paymentService.initiateRazorpayPayment(orderId);
 
   next({ success: true, data: paymentDetails });
+};
+
+export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
+  const { orderId } = req.params;
+  const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+
+  const payment = await paymentService.verifyRazorpayPayment({
+    orderId,
+    razorpayOrderId,
+    razorpayPaymentId,
+    razorpaySignature,
+  });
+
+  next({ success: true, data: payment });
 };
 
 export const getOrderById = async (req: Request, res: Response, next: NextFunction) => {

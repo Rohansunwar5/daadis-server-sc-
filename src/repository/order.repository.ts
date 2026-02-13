@@ -6,6 +6,7 @@ export interface ICreateOrderParams {
   sessionId?: string;
   isGuestOrder: boolean;
   guestInfo?: IGuestInfo;
+  paymentMethod: 'cod' | 'prepaid';
   items: IOrderItem[];
   subtotal: number;
   discountAmount: number;

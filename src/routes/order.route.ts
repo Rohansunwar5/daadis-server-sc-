@@ -3,6 +3,7 @@ import { asyncHandler } from '../utils/asynchandler';
 import {
   createOrder,
   initiatePayment,
+  verifyPayment,
   getOrderById,
   getOrderByOrderNumber,
   getMyOrders,
@@ -17,6 +18,7 @@ import { createOrderValidator } from '../middlewares/validators/order.validator'
 const orderRouter = Router();
 orderRouter.post('/', isLoggedInOptional, createOrderValidator, asyncHandler(createOrder));
 orderRouter.post('/:orderId/payment', isLoggedInOptional, asyncHandler(initiatePayment));
+orderRouter.post('/:orderId/verify-payment', isLoggedInOptional, asyncHandler(verifyPayment));
 orderRouter.get('/:orderId', asyncHandler(getOrderById));
 orderRouter.get('/number/:orderNumber', asyncHandler(getOrderByOrderNumber));
 orderRouter.get('/user/my-orders', isLoggedIn, asyncHandler(getMyOrders));

@@ -56,6 +56,10 @@ export class PaymentRepository {
     return this._model.findOne({ transactionId });
   }
 
+  async getPaymentByRazorpayOrderId(razorpayOrderId: string): Promise<IPayment | null> {
+    return this._model.findOne({ razorpayOrderId });
+  }
+
   async updatePaymentCheckoutDetails(
     paymentId: string,
     shiprocketCheckoutId: string,
