@@ -1,259 +1,198 @@
-import axios, { AxiosInstance } from 'axios';
-import config from '../config';
-import { InternalServerError } from '../errors/internal-server.error';
+import axios, { AxiosResponse } from "axios";
+import { BadRequestError } from "../errors/bad-request.error";
+import { InternalServerError } from "../errors/internal-server.error";
+import { IOrder } from "../models/order.model";
 
-export interface IShiprocketCheckoutParams {
-  order_id: string;
-  order_amount: number;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  billing_address: string;
-  billing_city: string;
-  billing_state: string;
-  billing_pincode: string;
-  billing_country: string;
-  payment_method?: 'prepaid' | 'cod';
-  redirect_url?: string;
-  notify_url?: string;
+const SHIPROCKET_BASE_URL = 'https://apiv2.shiprocket.in/v1/external';
+
+interface IPackageDetails {
+    weight: number;
+    length: number;
+    breadth: number;
+    height: number;
 }
 
-export interface IShiprocketOrderParams {
-  order_id: string;
-  order_date: string;
-  pickup_location: string;
-  channel_id?: string;
-  comment?: string;
-  billing_customer_name: string;
-  billing_last_name?: string;
-  billing_address: string;
-  billing_address_2?: string;
-  billing_city: string;
-  billing_pincode: string;
-  billing_state: string;
-  billing_country: string;
-  billing_email: string;
-  billing_phone: string;
-  shipping_is_billing: boolean;
-  shipping_customer_name?: string;
-  shipping_last_name?: string;
-  shipping_address?: string;
-  shipping_address_2?: string;
-  shipping_city?: string;
-  shipping_pincode?: string;
-  shipping_country?: string;
-  shipping_state?: string;
-  shipping_email?: string;
-  shipping_phone?: string;
-  order_items: Array<{
+interface IShiprocketOrderItem {
     name: string;
     sku: string;
     units: number;
-    selling_price: number;
-    discount?: number;
-    tax?: number;
-    hsn?: string;
-  }>;
-  payment_method: 'Prepaid' | 'COD';
-  shipping_charges?: number;
-  giftwrap_charges?: number;
-  transaction_charges?: number;
-  total_discount?: number;
-  sub_total: number;
-  length: number;
-  breadth: number;
-  height: number;
-  weight: number;
-}
-
-export interface IShiprocketCourierParams {
-  pickup_postcode: string;
-  delivery_postcode: string;
-  weight: number;
-  cod: 0 | 1;
-  order_amount?: number;
+    selling_price: string;
+    discount: number;
+    tax: number;
+    hsn: string;
 }
 
 class ShiprocketService {
-  private client: AxiosInstance;
-  private token: string | null = null;
-  private tokenExpiry: number = 0;
+    private token: string | null = null;
 
-  constructor() {
-    this.client = axios.create({
-      baseURL: config.SHIPROCKET_BASE_URL || 'https://apiv2.shiprocket.in/v1/external',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  }
-
-  private async getAuthToken(): Promise<string> {
-    const now = Date.now();
-    
-    // Return cached token if still valid
-    if (this.token && this.tokenExpiry > now) {
-      return this.token;
+    private calculatePackageDetails(): IPackageDetails {
+        // Since the current database does not store actual weight and dimensions,
+        // we use standard fallback defaults which can be adjusted in the 
+        // Shiprocket dashboard if needed.
+        return {
+            weight: 0.5,
+            length: 10,
+            breadth: 10,
+            height: 5
+        };
     }
 
-    try {
-      const response = await axios.post(
-        `${config.SHIPROCKET_BASE_URL || 'https://apiv2.shiprocket.in/v1/external'}/auth/login`,
-        {
-          email: config.SHIPROCKET_EMAIL,
-          password: config.SHIPROCKET_PASSWORD,
+    private async authenticate(): Promise<void> {
+        try {
+            const response: AxiosResponse = await axios.post(`${SHIPROCKET_BASE_URL}/auth/login`, {
+                email: process.env.SHIPROCKET_EMAIL,
+                password: process.env.SHIPROCKET_PASSWORD
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.data?.token) {
+                throw new InternalServerError('No token received from Shiprocket');
+            }
+
+            this.token = response.data.token;
+        } catch (error: any) {
+            throw new BadRequestError(`Shiprocket authentication failed: ${error.response?.data?.message || error.message}`);
         }
-      );
-
-      this.token = response.data.token;
-      // Set expiry to 9 days (token valid for 10 days)
-      this.tokenExpiry = now + 9 * 24 * 60 * 60 * 1000;
-
-      return this.token!;
-    } catch (error: any) {
-      console.error('Shiprocket auth error:', error.response?.data || error.message);
-      throw new InternalServerError('Failed to authenticate with Shiprocket');
     }
-  }
 
-  private async makeRequest(method: string, endpoint: string, data?: any) {
-    try {
-      const token = await this.getAuthToken();
-      
-      const response = await this.client.request({
-        method,
-        url: endpoint,
-        data,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    async createShipment(order: IOrder, userEmail?: string): Promise<any> {
+        if (!this.token) {
+            await this.authenticate();
+        }
 
-      return response.data;
-    } catch (error: any) {
-      console.error(`Shiprocket ${method} ${endpoint} error:`, error.response?.data || error.message);
-      throw error;
+        try {
+            const orderItems: IShiprocketOrderItem[] = [];
+
+            for (const item of order.items) {
+                // HSN is already available on the order item from the cart
+                const hsn = item.hsn || "";
+
+                orderItems.push({
+                    name: item.name,
+                    sku: item.productCode,
+                    units: item.quantity,
+                    selling_price: item.price.toFixed(2),
+                    discount: 0,
+                    tax: 0,
+                    hsn: hsn
+                });
+            }
+
+            const packageDetails = this.calculatePackageDetails();
+            const formattedState = this.formatStateName(order.shippingAddress.state);
+            const customerPhone = order.shippingAddress.phone || '0000000000';
+            const lastName = order.shippingAddress.name.split(' ').pop() || 'Customer';
+
+            const payload = {
+                order_id: Math.random().toString(36).substring(2, 7) + "_" + order.orderNumber, // Added a random prefix just to avoid conflicts if recreating
+                order_date: order.createdAt ? order.createdAt.toISOString() : new Date().toISOString(),
+                pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary',
+                channel_id: '',
+                billing_customer_name: order.shippingAddress.name,
+                billing_last_name: lastName,
+                billing_address: order.shippingAddress.addressLine1,
+                billing_address_2: order.shippingAddress.addressLine2 || '',
+                billing_city: order.shippingAddress.city,
+                billing_pincode: order.shippingAddress.pincode,
+                billing_state: formattedState,
+                billing_country: order.shippingAddress.country || "India",
+                billing_email: userEmail || 'customer@example.com',
+                billing_phone: customerPhone,
+                shipping_is_billing: true,
+                order_items: orderItems,
+                payment_method: order.paymentMethod === 'cod' ? 'COD' : 'Prepaid',
+                sub_total: order.totalAmount.toFixed(2),
+                length: packageDetails.length,
+                breadth: packageDetails.breadth,
+                height: packageDetails.height,
+                weight: packageDetails.weight
+            };
+
+            const response: AxiosResponse = await axios.post(
+                `${SHIPROCKET_BASE_URL}/orders/create/adhoc`,
+                payload,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            const responseData = response.data;
+
+            if (responseData.success === false) {
+                throw new BadRequestError(`Shiprocket API Error: ${responseData.message}`);
+            }
+
+            const shipmentData = responseData.data || responseData;
+
+            const result = {
+                order_id: shipmentData.order_id || 0,
+                shipment_id: shipmentData.shipment_id || 0,
+                status: shipmentData.status || 'UNKNOWN',
+                status_code: shipmentData.status_code || 0,
+                onboarding_completed_now: shipmentData.onboarding_completed_now || 0,
+                awb_code: shipmentData.awb_code || '',
+                courier_company_id: shipmentData.courier_company_id || 0,
+                courier_name: shipmentData.courier_name || ''
+            };
+
+            return result;
+
+        } catch (error: any) {
+            console.error('Shiprocket shipment creation error:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message
+            });
+
+            if (error.response?.status === 401) {
+                this.token = null;
+                await this.authenticate();
+                return this.createShipment(order, userEmail); // Retry once after re-auth
+            }
+
+            throw new BadRequestError(
+                `Shiprocket shipment creation failed: ${error.response?.data?.message || error.message}`
+            );
+        }
     }
-  }
 
-  async createQuickCheckout(params: IShiprocketCheckoutParams) {
-    try {
-      const payload = {
-        ...params,
-        payment_method: params.payment_method || 'prepaid',
-        redirect_url: params.redirect_url || `${config.FRONTEND_URL}/order/payment/success`,
-        notify_url: params.notify_url || `${config.BACKEND_URL}/api/webhooks/shiprocket/payment`,
-      };
+    private formatStateName(state: string): string {
+        const stateMapping: { [key: string]: string } = {
+            'KA': 'Karnataka',
+            'MH': 'Maharashtra',
+            'TN': 'Tamil Nadu',
+            'DL': 'Delhi',
+            'UP': 'Uttar Pradesh',
+            'WB': 'West Bengal',
+            'GJ': 'Gujarat',
+            'RJ': 'Rajasthan',
+            'PB': 'Punjab',
+            'HR': 'Haryana',
+            'BR': 'Bihar',
+            'OR': 'Odisha',
+            'JH': 'Jharkhand',
+            'AS': 'Assam',
+            'KL': 'Kerala',
+            'AP': 'Andhra Pradesh',
+            'TS': 'Telangana',
+            'MP': 'Madhya Pradesh',
+            'CG': 'Chhattisgarh'
+        };
 
-      return await this.makeRequest('POST', '/checkout/create', payload);
-    } catch (error: any) {
-      console.error('Shiprocket checkout creation error:', error.response?.data || error.message);
-      throw new InternalServerError('Failed to create Shiprocket checkout');
+        if (state.length > 2) {
+            return state;
+        }
+
+        return stateMapping[state.toUpperCase()] || state;
     }
-  }
-
-  async createOrder(params: IShiprocketOrderParams) {
-    try {
-      return await this.makeRequest('POST', '/orders/create/adhoc', params);
-    } catch (error: any) {
-      console.error('Shiprocket order creation error:', error.response?.data || error.message);
-      throw new InternalServerError('Failed to create Shiprocket order');
-    }
-  }
-
-  async getOrderDetails(orderId: string) {
-    try {
-      return await this.makeRequest('GET', `/orders/show/${orderId}`);
-    } catch (error: any) {
-      console.error('Shiprocket get order error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async getAvailableCouriers(params: IShiprocketCourierParams) {
-    try {
-      return await this.makeRequest('GET', '/courier/serviceability', { params });
-    } catch (error: any) {
-      console.error('Shiprocket courier serviceability error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async assignCourier(shipmentId: number, courierId: number) {
-    try {
-      return await this.makeRequest('POST', '/courier/assign/awb', {
-        shipment_id: shipmentId,
-        courier_id: courierId,
-      });
-    } catch (error: any) {
-      console.error('Shiprocket assign courier error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async generatePickup(shipmentId: number) {
-    try {
-      return await this.makeRequest('POST', '/courier/generate/pickup', {
-        shipment_id: [shipmentId],
-      });
-    } catch (error: any) {
-      console.error('Shiprocket generate pickup error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async trackShipment(awb: string) {
-    try {
-      return await this.makeRequest('GET', `/courier/track/awb/${awb}`);
-    } catch (error: any) {
-      console.error('Shiprocket track shipment error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async generateLabel(shipmentId: number[]) {
-    try {
-      return await this.makeRequest('POST', '/courier/generate/label', {
-        shipment_id: shipmentId,
-      });
-    } catch (error: any) {
-      console.error('Shiprocket generate label error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async generateManifest(shipmentId: number[]) {
-    try {
-      return await this.makeRequest('POST', '/manifests/generate', {
-        shipment_id: shipmentId,
-      });
-    } catch (error: any) {
-      console.error('Shiprocket generate manifest error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async generateInvoice(orderIds: number[]) {
-    try {
-      return await this.makeRequest('POST', '/orders/print/invoice', {
-        ids: orderIds,
-      });
-    } catch (error: any) {
-      console.error('Shiprocket generate invoice error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
-
-  async cancelShipment(shipmentIds: number[]) {
-    try {
-      return await this.makeRequest('POST', '/orders/cancel/shipment/awbs', {
-        awbs: shipmentIds,
-      });
-    } catch (error: any) {
-      console.error('Shiprocket cancel shipment error:', error.response?.data || error.message);
-      throw error;
-    }
-  }
 }
 
 export default new ShiprocketService();

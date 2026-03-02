@@ -1,6 +1,8 @@
 import { PaymentRepository } from '../repository/payment.repository';
 import { OrderRepository } from '../repository/order.repository';
 import razorpayService from './razorpay.service';
+import shiprocketService from './shiprocket.service';
+import mailService from './mail.service';
 import config from '../config';
 import { NotFoundError } from '../errors/not-found.error';
 import { BadRequestError } from '../errors/bad-request.error';
@@ -90,6 +92,71 @@ class PaymentService {
       orderId: order._id,
       status: 'confirmed',
       paymentStatus: 'completed',
+    });
+
+    // Non-blocking Shiprocket integration & Email Sending
+    Promise.resolve().then(async () => {
+      try {
+        const orderDetails = await this._orderRepo.getOrderById(order._id);
+        if (orderDetails) {
+          try {
+            const shiprocketResponse = await shiprocketService.createShipment(
+              orderDetails,
+              orderDetails.shippingAddress?.email || 'customer@example.com'
+            );
+
+            await this._orderRepo.updateOrder(orderDetails._id.toString(), {
+              shipmentId: shiprocketResponse.shipment_id?.toString(),
+              awbNumber: shiprocketResponse.awb_code,
+              courierName: shiprocketResponse.courier_name,
+              trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
+            });
+          } catch (err: any) {
+            console.error("Shiprocket integration failed (non-critical):", { orderId: order._id, error: err.message });
+          }
+
+          // Send Order Confirmation Email
+          try {
+            const userEmail = orderDetails.shippingAddress?.email || orderDetails.guestInfo?.email || 'customer@example.com';
+            const receiptUrl = `${config.FRONTEND_URL}/order-receipt/${orderDetails.orderNumber}`;
+
+            await mailService.sendEmail(
+              userEmail,
+              'order-confirmation-email.ejs',
+              {
+                firstName: orderDetails.shippingAddress?.name.split(' ')[0] || 'Customer',
+                lastName: orderDetails.shippingAddress?.name.split(' ').slice(1).join(' ') || '',
+                orderNumber: orderDetails.orderNumber,
+                orderDate: new Date(orderDetails.createdAt).toLocaleDateString(),
+                items: orderDetails.items.map(i => ({
+                  productName: i.name,
+                  productCode: i.productCode,
+                  size: i.size || 'N/A',
+                  quantity: i.quantity,
+                  priceAtPurchase: i.price,
+                  itemTotal: i.price * i.quantity
+                })),
+                pricing: {
+                  subtotal: orderDetails.gstAmount > 0
+                    ? orderDetails.totalAmount - orderDetails.gstAmount - orderDetails.shippingAmount + orderDetails.discountAmount
+                    : orderDetails.totalAmount,
+                  totalDiscountAmount: orderDetails.discountAmount || 0,
+                  shippingCharge: orderDetails.shippingAmount || 0,
+                  taxAmount: orderDetails.gstAmount || 0,
+                  total: orderDetails.totalAmount
+                },
+                receiptUrl: receiptUrl,
+                email: userEmail
+              },
+              `Order Confirmed! #${orderDetails.orderNumber}`
+            );
+          } catch (emailErr: any) {
+            console.error("Failed to send order confirmation email:", emailErr.message);
+          }
+        }
+      } catch (err: any) {
+        console.error("Post-payment tasks failed:", { orderId: order._id, error: err.message });
+      }
     });
 
     return payment;
@@ -200,6 +267,42 @@ class PaymentService {
       return payment;
     }
 
+    // Poll Razorpay until payment is captured (handles auto-capture delay)
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY_MS = 2000;
+    let razorpayPayment: any;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      razorpayPayment = await razorpayService.fetchPayment(params.razorpayPaymentId);
+
+      if (razorpayPayment.status === 'captured') {
+        break;
+      }
+
+      // If status is neither authorized nor created, it's a terminal failure
+      if (razorpayPayment.status !== 'authorized' && razorpayPayment.status !== 'created') {
+        throw new BadRequestError(`Payment failed with status: ${razorpayPayment.status}`);
+      }
+
+      if (attempt < MAX_RETRIES) {
+        console.log(
+          `[PaymentService] Attempt ${attempt}/${MAX_RETRIES}: Razorpay status="${razorpayPayment.status}", retrying in ${RETRY_DELAY_MS}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    }
+
+    if (!razorpayPayment || razorpayPayment.status !== 'captured') {
+      console.error(
+        `[PaymentService] Payment ${params.razorpayPaymentId} not captured after ${MAX_RETRIES} retries. Last status: ${razorpayPayment?.status}`
+      );
+      throw new BadRequestError(
+        'Payment not captured after polling. Please contact support if money was deducted.'
+      );
+    }
+
+    console.log(`[PaymentService] Payment ${params.razorpayPaymentId} captured successfully.`);
+
     // Mark payment as completed
     const updatedPayment = await this._paymentRepo.markPaymentCompleted(
       payment._id,
@@ -214,6 +317,71 @@ class PaymentService {
       orderId: payment.orderId,
       status: 'confirmed',
       paymentStatus: 'completed',
+    });
+
+    // Non-blocking Shiprocket integration & Email
+    Promise.resolve().then(async () => {
+      try {
+        const orderDetails = await this._orderRepo.getOrderById(payment.orderId);
+        if (orderDetails) {
+          try {
+            const shiprocketResponse = await shiprocketService.createShipment(
+              orderDetails,
+              orderDetails.shippingAddress?.email || 'customer@example.com'
+            );
+
+            await this._orderRepo.updateOrder(orderDetails._id.toString(), {
+              shipmentId: shiprocketResponse.shipment_id?.toString(),
+              awbNumber: shiprocketResponse.awb_code,
+              courierName: shiprocketResponse.courier_name,
+              trackingUrl: `https://shiprocket.co/tracking/${shiprocketResponse.awb_code}`
+            });
+          } catch (err: any) {
+            console.error("Shiprocket integration failed (non-critical):", { orderId: payment.orderId, error: err.message });
+          }
+
+          // Send Order Confirmation Email
+          try {
+            const userEmail = orderDetails.shippingAddress?.email || orderDetails.guestInfo?.email || 'customer@example.com';
+            const receiptUrl = `${config.FRONTEND_URL}/order-receipt/${orderDetails.orderNumber}`;
+
+            await mailService.sendEmail(
+              userEmail,
+              'order-confirmation-email.ejs',
+              {
+                firstName: orderDetails.shippingAddress?.name.split(' ')[0] || 'Customer',
+                lastName: orderDetails.shippingAddress?.name.split(' ').slice(1).join(' ') || '',
+                orderNumber: orderDetails.orderNumber,
+                orderDate: new Date(orderDetails.createdAt).toLocaleDateString(),
+                items: orderDetails.items.map(i => ({
+                  productName: i.name,
+                  productCode: i.productCode,
+                  size: i.size || 'N/A',
+                  quantity: i.quantity,
+                  priceAtPurchase: i.price,
+                  itemTotal: i.price * i.quantity
+                })),
+                pricing: {
+                  subtotal: orderDetails.gstAmount > 0
+                    ? orderDetails.totalAmount - orderDetails.gstAmount - orderDetails.shippingAmount + orderDetails.discountAmount
+                    : orderDetails.totalAmount,
+                  totalDiscountAmount: orderDetails.discountAmount || 0,
+                  shippingCharge: orderDetails.shippingAmount || 0,
+                  taxAmount: orderDetails.gstAmount || 0,
+                  total: orderDetails.totalAmount
+                },
+                receiptUrl: receiptUrl,
+                email: userEmail
+              },
+              `Order Confirmed! #${orderDetails.orderNumber}`
+            );
+          } catch (emailErr: any) {
+            console.error("Failed to send order confirmation email:", emailErr.message);
+          }
+        }
+      } catch (err: any) {
+        console.error("Post-payment tasks failed:", { orderId: payment.orderId, error: err.message });
+      }
     });
 
     return updatedPayment;

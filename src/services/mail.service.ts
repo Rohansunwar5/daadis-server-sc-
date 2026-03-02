@@ -5,7 +5,7 @@ import config from "../config";
 import { InternalServerError } from "../errors/internal-server.error";
 
 class MailService {
-    constructor(private readonly _transporter = transporter) {}
+    constructor(private readonly _transporter = transporter) { }
 
     async sendEmail(
         toEmail: string,
@@ -24,7 +24,7 @@ class MailService {
             const html = await ejs.renderFile(templatePath, templateData);
 
             const mailOptions = {
-                from: `'Sweety.com' <${config.GMAIL_USER}>`,
+                from: `"Navkar" <${config.GMAIL_USER}>`,
                 to: toEmail,
                 subject,
                 html,
@@ -32,14 +32,14 @@ class MailService {
 
             const info = await this._transporter.sendMail(mailOptions);
 
-            if(!info.messageId) {
+            if (!info.messageId) {
                 throw new InternalServerError('Email failed to send');
             }
 
             return { success: true, messageId: info.messageId };
         } catch (error) {
             console.error('Email sending error: ', error);
-            throw new InternalServerError('Failed to send email');            
+            throw new InternalServerError('Failed to send email');
         }
     }
 }

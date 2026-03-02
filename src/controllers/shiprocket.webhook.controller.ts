@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response } from 'express';
 import paymentService from '../services/payment.service';
 import shipmentService from '../services/shipment.service';
@@ -7,7 +8,7 @@ export const handleShiprocketWebhook = async (req: Request, res: Response) => {
   try {
     // Verify webhook secret
     const webhookSecret = req.headers['x-shiprocket-secret'] || req.headers['authorization'];
-    
+
     if (webhookSecret !== config.SHIPROCKET_WEBHOOK_SECRET) {
       console.warn('[Webhook] Invalid Shiprocket webhook secret');
       return res.status(401).json({ success: false, message: 'Unauthorized' });

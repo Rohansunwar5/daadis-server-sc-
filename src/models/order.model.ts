@@ -218,6 +218,15 @@ const orderSchema = new mongoose.Schema(
       type: String,
       index: true,
     },
+    awbNumber: {
+      type: String,
+    },
+    courierName: {
+      type: String,
+    },
+    trackingUrl: {
+      type: String,
+    },
     status: {
       type: String,
       enum: [
@@ -360,6 +369,9 @@ export interface IOrder extends Document {
   paymentMethod: 'cod' | 'prepaid';
   paymentId?: string;
   shipmentId?: string;
+  awbNumber?: string;
+  courierName?: string;
+  trackingUrl?: string;
   status: string;
   paymentStatus: string;
   shipmentStatus: string;

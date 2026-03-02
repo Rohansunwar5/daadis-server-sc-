@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Confirmation - Sweety</title>
+  <title>Order Confirmation - Navkar</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -12,151 +13,179 @@
       max-width: 600px;
       margin: 0 auto;
       padding: 20px;
-      background-color: #fff6f8;
+      background-color: #FAF9F6;
     }
+
     .email-container {
       background-color: #ffffff;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 6px 20px rgba(255, 105, 180, 0.15);
+      box-shadow: 0 6px 20px rgba(139, 94, 60, 0.15);
     }
+
     .header {
-      background: linear-gradient(135deg, #ff9ec4 0%, #ff69b4 100%);
+      background: linear-gradient(135deg, #A67B5B 0%, #8B5E3C 100%);
       color: white;
       text-align: center;
       padding: 40px 20px;
     }
+
     .logo {
       font-size: 32px;
       font-weight: bold;
       margin-bottom: 10px;
       letter-spacing: 1px;
     }
+
     .checkmark {
       font-size: 48px;
       margin: 15px 0;
     }
+
     .success-message {
       font-size: 22px;
       font-weight: 600;
       margin-bottom: 10px;
     }
+
     .tagline {
       opacity: 0.9;
       font-size: 16px;
     }
+
     .content {
       padding: 30px;
     }
+
     .order-info {
-      background-color: #fff6f8;
+      background-color: #FAF9F6;
       padding: 25px;
       border-radius: 8px;
       margin-bottom: 30px;
-      border-left: 4px solid #ff69b4;
+      border-left: 4px solid #8B5E3C;
     }
+
     .order-number {
       font-size: 22px;
       font-weight: bold;
-      color: #ff69b4;
+      color: #8B5E3C;
       margin-bottom: 8px;
     }
+
     .order-date {
       color: #666;
       font-size: 16px;
     }
+
     .greeting {
       font-size: 18px;
       margin-bottom: 20px;
       color: #333;
     }
+
     .items-section {
       margin: 30px 0;
     }
+
     .section-title {
       font-size: 20px;
       font-weight: bold;
       color: #333;
       margin-bottom: 20px;
-      border-bottom: 2px solid #ffe4ec;
+      border-bottom: 2px solid #E8D8C8;
       padding-bottom: 8px;
     }
+
     .item {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 15px 0;
-      border-bottom: 1px solid #ffe4ec;
+      border-bottom: 1px solid #E8D8C8;
     }
+
     .item:last-child {
       border-bottom: none;
     }
+
     .item-details {
       flex: 1;
     }
+
     .item-name {
       font-weight: bold;
       font-size: 16px;
       margin-bottom: 5px;
       color: #333;
     }
+
     .item-meta {
       font-size: 14px;
       color: #666;
       margin-bottom: 3px;
     }
+
     .item-price {
       font-weight: bold;
-      color: #ff69b4;
+      color: #8B5E3C;
       font-size: 16px;
     }
+
     .pricing-summary {
-      background-color: #fff6f8;
+      background-color: #FAF9F6;
       padding: 25px;
       border-radius: 8px;
       margin: 30px 0;
     }
+
     .pricing-row {
       display: flex;
       justify-content: space-between;
       margin-bottom: 12px;
       font-size: 16px;
     }
+
     .pricing-row.discount {
       color: #28a745;
     }
+
     .pricing-total {
-      border-top: 2px solid #ffe4ec;
+      border-top: 2px solid #E8D8C8;
       padding-top: 15px;
       margin-top: 15px;
       font-weight: bold;
       font-size: 20px;
       color: #333;
     }
+
     .footer {
-      background-color: #fff6f8;
+      background-color: #FAF9F6;
       padding: 30px;
       text-align: center;
       color: #666;
     }
+
     .footer h3 {
       color: #333;
       margin-bottom: 15px;
     }
+
     .contact-info {
       margin-top: 20px;
       font-size: 14px;
     }
+
     .brand-footer {
       margin-top: 20px;
       padding-top: 20px;
-      border-top: 1px solid #f5dce3;
+      border-top: 1px solid #E8D8C8;
       font-size: 12px;
       color: #999;
     }
+
     .button {
       display: inline-block;
-      background: linear-gradient(135deg, #ff9ec4 0%, #ff69b4 100%);
+      background: linear-gradient(135deg, #A67B5B 0%, #8B5E3C 100%);
       color: white;
       padding: 12px 30px;
       text-decoration: none;
@@ -164,67 +193,80 @@
       font-weight: bold;
       margin-top: 15px;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+      box-shadow: 0 4px 15px rgba(139, 94, 60, 0.3);
     }
+
     .button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+      box-shadow: 0 6px 20px rgba(139, 94, 60, 0.4);
     }
+
     @media (max-width: 600px) {
       .item {
         flex-direction: column;
         align-items: flex-start;
       }
+
       .item-price {
         margin-top: 10px;
         align-self: flex-end;
       }
+
       .pricing-row {
         font-size: 14px;
       }
     }
   </style>
 </head>
+
 <body>
   <div class="email-container">
     <!-- Header -->
     <div class="header">
-      <div class="logo">SWEETY</div>
-      <div class="checkmark">💖</div>
+      <div class="logo">NAVKAR</div>
+      <div class="checkmark">✨</div>
       <div class="success-message">Order Confirmed!</div>
-      <p class="tagline">Thanks for shopping with Sweety 💕</p>
+      <p class="tagline">Thanks for shopping with Navkar 🌸</p>
     </div>
 
     <!-- Content -->
     <div class="content">
       <div class="greeting">
-        Hi <%= firstName %> <%= lastName %>,
+        Hi <%= firstName %>
+          <%= lastName %>,
       </div>
       <p>
-        Yay! We’ve received your order and our team is already preparing your goodies.  
+        Yay! We’ve received your order and our team is already preparing your artificial flowers.
         We’ll let you know once they’re packed and on their way to you.
       </p>
 
       <!-- Order Information -->
       <div class="order-info">
-        <div class="order-number">Order #<%= orderNumber %></div>
-        <div class="order-date">Placed on <%= orderDate %></div>
+        <div class="order-number">Order #<%= orderNumber %>
+        </div>
+        <div class="order-date">Placed on <%= orderDate %>
+        </div>
       </div>
 
       <!-- Order Items -->
       <div class="items-section">
-        <h2 class="section-title">Your Sweet Picks</h2>
+        <h2 class="section-title">Your Beautiful Selections</h2>
         <% items.forEach(function(item) { %>
-        <div class="item">
-          <div class="item-details">
-            <div class="item-name"><%= item.productName %></div>
-            <div class="item-meta">Product Code: <%= item.productCode %></div>
-            <div class="item-meta">Size: <%= item.size %> | Quantity: <%= item.quantity %></div>
-            <div class="item-meta">₹<%= item.priceAtPurchase.toFixed(2) %> each</div>
+          <div class="item">
+            <div class="item-details">
+              <div class="item-name">
+                <%= item.productName %>
+              </div>
+              <div class="item-meta">Product Code: <%= item.productCode %>
+              </div>
+              <div class="item-meta">Size: <%= item.size %> | Quantity: <%= item.quantity %>
+              </div>
+              <div class="item-meta">₹<%= item.priceAtPurchase.toFixed(2) %> each</div>
+            </div>
+            <div class="item-price">₹<%= item.itemTotal.toFixed(2) %>
+            </div>
           </div>
-          <div class="item-price">₹<%= item.itemTotal.toFixed(2) %></div>
-        </div>
-        <% }); %>
+          <% }); %>
       </div>
 
       <!-- Pricing Summary -->
@@ -234,33 +276,35 @@
           <span>Subtotal:</span>
           <span>₹<%= pricing.subtotal.toFixed(2) %></span>
         </div>
-        <% if (pricing.totalDiscountAmount > 0) { %>
-        <div class="pricing-row discount">
-          <span>Discount:</span>
-          <span>-₹<%= pricing.totalDiscountAmount.toFixed(2) %></span>
-        </div>
-        <% } %>
-        <div class="pricing-row">
-          <span>Shipping:</span>
-          <span>₹<%= pricing.shippingCharge.toFixed(2) %></span>
-        </div>
-        <div class="pricing-row">
-          <span>Tax:</span>
-          <span>₹<%= pricing.taxAmount.toFixed(2) %></span>
-        </div>
-        <div class="pricing-row pricing-total">
-          <span>Total:</span>
-          <span>₹<%= pricing.total.toFixed(2) %></span>
-        </div>
+        <% if (pricing.totalDiscountAmount> 0) { %>
+          <div class="pricing-row discount">
+            <span>Discount:</span>
+            <span>-₹<%= pricing.totalDiscountAmount.toFixed(2) %></span>
+          </div>
+          <% } %>
+            <div class="pricing-row">
+              <span>Shipping:</span>
+              <span>₹<%= pricing.shippingCharge.toFixed(2) %></span>
+            </div>
+            <div class="pricing-row">
+              <span>Tax:</span>
+              <span>₹<%= pricing.taxAmount.toFixed(2) %></span>
+            </div>
+            <div class="pricing-row pricing-total">
+              <span>Total:</span>
+              <span>₹<%= pricing.total.toFixed(2) %></span>
+            </div>
       </div>
 
       <p style="color: #666; font-size: 16px; line-height: 1.6;">
-        You’ll receive another email once your order has shipped — complete with tracking details so you can follow its journey!  
+        You’ll receive another email once your order has shipped — complete with tracking details so you can follow its
+        journey!
         In the meantime, feel free to reach out if you need anything.
       </p>
 
       <div style="text-align:center;">
-        <a href="#" class="button">Track My Order</a>
+        <a href="https://navkarflower.netlify.app/order-receipt/<%= orderNumber %>" class="button">View Order
+          Details</a>
       </div>
     </div>
 
@@ -268,20 +312,22 @@
     <div class="footer">
       <h3>What Happens Next?</h3>
       <p>
-        Your items are being prepared with love 💌 and will be shipped out soon!  
-        Get ready for your doorstep delivery of sweetness.
+        Your items are being prepared with care and will be shipped out soon!
+        Get ready for your doorstep delivery of beautiful artificial flowers.
       </p>
 
       <div class="contact-info">
         <p><strong>Need Help?</strong></p>
-        <p>Email: sneakyapparels@gmail.com </p>
+        <p>Email: navkarflowers@gmail.com</p>
       </div>
 
       <div class="brand-footer">
-        <p>This email was sent to <%= email %></p>
-        <p>&copy; 2025 Sweety. All rights reserved.</p>
+        <p>This email was sent to <%= email %>
+        </p>
+        <p>&copy; 2025 Navkar. All rights reserved.</p>
       </div>
     </div>
   </div>
 </body>
+
 </html>

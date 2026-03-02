@@ -76,7 +76,7 @@ class AuthService {
     const user = await this._userRepository.onBoardUser({
       firstName, lastName, email, password: hashedPassword, phone
     });
-    
+
     if (!user) throw new InternalServerError('Failed to Onboard user');
 
     const accessToken = await this.generateJWTToken(user._id);
@@ -91,7 +91,7 @@ class AuthService {
         email: email,
         phone: phone
       },
-      "Welcome to Sweety"
+      "Welcome to Navkar"
     )
 
     // await whatsappService.sendWhatsAppTemplate(
@@ -118,24 +118,24 @@ class AuthService {
   }
 
   async updateProfile(params: {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  _id: string;
-  addresses?: Array<{
-    name?: string;
-    addressLine1?: string;
-    addressLine2?: string;
-    city?: string;
-    state?: string;
-    pinCode?: string;
-    country?: string;
-    isDefault?: boolean;
-  }>;
-}) {
-  const { firstName, lastName, email, phone, _id, addresses,
-  } = params;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    _id: string;
+    addresses?: Array<{
+      name?: string;
+      addressLine1?: string;
+      addressLine2?: string;
+      city?: string;
+      state?: string;
+      pinCode?: string;
+      country?: string;
+      isDefault?: boolean;
+    }>;
+  }) {
+    const { firstName, lastName, email, phone, _id, addresses,
+    } = params;
 
     const user = await this._userRepository.updateUser({
       firstName,
@@ -155,22 +155,22 @@ class AuthService {
   private async verifyGoogleToken(idToken: string) {
     try {
       const ticket = await googleAuthClient.verifyIdToken({
-        idToken, 
+        idToken,
         audience: config.GOOGLE_CLIENT_ID,
       });
 
       const payload = ticket.getPayload();
-      if(!payload) throw new UnauthorizedError('Invalid Google token');
+      if (!payload) throw new UnauthorizedError('Invalid Google token');
 
-      if(!payload.email) throw new UnauthorizedError('Google email not provided');
-      
+      if (!payload.email) throw new UnauthorizedError('Google email not provided');
+
 
       return {
         email: payload.email,
         firstName: payload.given_name || 'User',
         lastName: payload.family_name || '',
         picture: payload.picture || '',
-        emailVerified: payload.email_verified === true 
+        emailVerified: payload.email_verified === true
       };
 
     } catch (error) {
@@ -187,7 +187,7 @@ class AuthService {
   }) {
     let user = await this._userRepository.getUserByEmailId(googleData.email);
 
-    if(!user) {
+    if (!user) {
       user = await this._userRepository.onBoardUser({
         firstName: googleData.firstName,
         lastName: googleData.lastName,
@@ -199,9 +199,9 @@ class AuthService {
       });
 
       if (!user) throw new InternalServerError('Failed to create user');
-      
+
       return user._id;
-    
+
     } else if (user.authProvider !== IAuthProvider.GOGGLE) {
       throw new BadRequestError('Email already registered with password');
     }
@@ -220,10 +220,10 @@ class AuthService {
       code,
       redirect_uri: 'https://sweetyintimates.com/auth/google/callback'
     });
-    if(!tokens.id_token) throw new BadRequestError('Invalid authorization code');
+    if (!tokens.id_token) throw new BadRequestError('Invalid authorization code');
 
     const googleProfile = await this.verifyGoogleToken(tokens.id_token);
-    if(!googleProfile.emailVerified) throw new UnauthorizedError('Google email not verified');
+    if (!googleProfile.emailVerified) throw new UnauthorizedError('Google email not verified');
 
     // Check if this is a new user
     const existingUser = await this._userRepository.getUserByEmailId(googleProfile.email);
@@ -233,7 +233,7 @@ class AuthService {
       email: googleProfile.email,
       firstName: googleProfile.firstName,
       lastName: googleProfile.lastName,
-      picture: googleProfile.picture 
+      picture: googleProfile.picture
     });
 
     // Send welcome email for new Google users
@@ -261,36 +261,36 @@ class AuthService {
   }
 
   async sendInfluencerEmail(params: {
-  influencerName: string;
-  email: string;
-  youtubePageName: string;
-  instagramPageName: string;
-  subscribers: number;
-  followers: number;
-}) {
-  try {
-    await mailService.sendEmail(
-      'caroal.official06@gmail.com',
-      'influencer-email.ejs',
-      {
-        influencerName: params.influencerName,
-        email: params.email,
-        youtubePageName: params.youtubePageName,
-        instagramPageName: params.instagramPageName,
-        subscribers: params.subscribers,
-        followers: params.followers,
-        date: new Date().toLocaleDateString()
-      },
-      "New Influencer Collaboration Request"
-    );
+    influencerName: string;
+    email: string;
+    youtubePageName: string;
+    instagramPageName: string;
+    subscribers: number;
+    followers: number;
+  }) {
+    try {
+      await mailService.sendEmail(
+        'caroal.official06@gmail.com',
+        'influencer-email.ejs',
+        {
+          influencerName: params.influencerName,
+          email: params.email,
+          youtubePageName: params.youtubePageName,
+          instagramPageName: params.instagramPageName,
+          subscribers: params.subscribers,
+          followers: params.followers,
+          date: new Date().toLocaleDateString()
+        },
+        "New Influencer Collaboration Request"
+      );
 
-    return { success: true, message: 'Email sent successfully' };
-  } catch (error) {
-    console.error('Failed to send influencer email:', error);
-    throw new InternalServerError('Failed to send email');
+      return { success: true, message: 'Email sent successfully' };
+    } catch (error) {
+      console.error('Failed to send influencer email:', error);
+      throw new InternalServerError('Failed to send email');
+    }
   }
-}
-  
+
 }
 
 export default new AuthService(new UserRepository());
