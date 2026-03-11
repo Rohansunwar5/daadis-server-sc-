@@ -142,6 +142,17 @@ export class OrderRepository {
   async getRecentOrders(limit: number = 10): Promise<IOrder[]> {
     return this._model.find().sort({ createdAt: -1 }).limit(limit);
   }
+
+  async getAllOrdersPaginated(query: any, skip: number, limit: number): Promise<IOrder[]> {
+    return this._model.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+  }
+
+  async countAllOrders(query: any): Promise<number> {
+    return this._model.countDocuments(query);
+  }
 }
 
 export default new OrderRepository();

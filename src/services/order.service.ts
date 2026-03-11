@@ -290,6 +290,52 @@ class OrderService {
   async linkShipmentToOrder(orderId: string, shipmentId: string) {
     return this._orderRepo.updateOrderShipmentId(orderId, shipmentId);
   }
+
+  async getAllOrdersAdmin(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }) {
+    const page = params.page || 1;
+    const limit = params.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const query: any = {};
+
+    if (params.status && params.status !== 'All') {
+      query.status = params.status.toLowerCase();
+    }
+
+    if (params.startDate || params.endDate) {
+      query.createdAt = {};
+      if (params.startDate) query.createdAt.$gte = new Date(params.startDate);
+      if (params.endDate) query.createdAt.$lte = new Date(params.endDate);
+    }
+
+    if (params.search) {
+      const searchRegex = new RegExp(params.search, 'i');
+      query.$or = [
+        { orderNumber: searchRegex },
+        { 'shippingAddress.name': searchRegex },
+        { 'guestInfo.name': searchRegex },
+        { 'shippingAddress.phone': searchRegex }
+      ];
+    }
+
+    const orders = await this._orderRepo.getAllOrdersPaginated(query, skip, limit);
+    const total = await this._orderRepo.countAllOrders(query);
+
+    return {
+      orders,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  }
 }
 
 export default new OrderService(new OrderRepository());

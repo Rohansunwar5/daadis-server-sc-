@@ -10,9 +10,11 @@ import {
   getGuestOrders,
   cancelOrder,
   updateOrderStatus,
+  getAllOrdersAdmin,
 } from '../controllers/order.controller';
 import isLoggedIn from '../middlewares/isLoggedIn.middleware';
 import isLoggedInOptional from '../middlewares/isLoggedInOptional.middleware';
+import isAdminLoggedIn from '../middlewares/isAdminLoggedIn.middleware';
 import { createOrderValidator } from '../middlewares/validators/order.validator';
 
 const orderRouter = Router();
@@ -25,5 +27,7 @@ orderRouter.get('/user/my-orders', isLoggedIn, asyncHandler(getMyOrders));
 orderRouter.get('/guest/:sessionId', asyncHandler(getGuestOrders));
 orderRouter.post('/:orderId/cancel', isLoggedInOptional, asyncHandler(cancelOrder));
 orderRouter.patch('/:orderId/status', asyncHandler(updateOrderStatus));
+
+orderRouter.get('/admin/all', isAdminLoggedIn, asyncHandler(getAllOrdersAdmin));
 
 export default orderRouter;

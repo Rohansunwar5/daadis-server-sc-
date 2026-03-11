@@ -90,16 +90,35 @@ export const cancelOrder = async (req: Request, res: Response, next: NextFunctio
   next({ success: true, data: order });
 };
 
-export const updateOrderStatus = async (req: Request, res: Response, next: NextFunction) => {
+export const updateOrderStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { orderId } = req.params;
   const { status, paymentStatus, shipmentStatus } = req.body;
 
-  const order = await orderService.updateOrderStatus({
+  const response = await orderService.updateOrderStatus({
     orderId,
     status,
     paymentStatus,
     shipmentStatus,
   });
 
-  next({ success: true, data: order });
+  next({ data: response, statusCode: 200, success: true });
+};
+
+export const getAllOrdersAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  const { page, limit, status, startDate, endDate, search } = req.query;
+
+  const response = await orderService.getAllOrdersAdmin({
+    page: page ? parseInt(page as string) : undefined,
+    limit: limit ? parseInt(limit as string) : undefined,
+    status: status as string,
+    startDate: startDate as string,
+    endDate: endDate as string,
+    search: search as string
+  });
+
+  next({ data: response, statusCode: 200, success: true });
 };

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../utils/asynchandler";
 import { adminLogin, adminProfile, adminSignup, generateResetPasswordLink, resetPassword, verifyResetPasswordCode } from "../controllers/admin.controller";
+import { getDashboardStats } from "../controllers/dashboard.controller";
 import isAdminLoggedIn from "../middlewares/isAdminLoggedIn.middleware";
 import { loginValidator, signupValidator } from "../middlewares/validators/auth.validator";
 
@@ -12,5 +13,7 @@ adminRouter.get('/profile', isAdminLoggedIn, asyncHandler(adminProfile));
 adminRouter.post('/reset-password', asyncHandler(generateResetPasswordLink));
 adminRouter.get('/reset-password/:code', asyncHandler(verifyResetPasswordCode));
 adminRouter.patch('/reset-password/:code', asyncHandler(resetPassword));
+
+adminRouter.get('/dashboard-stats', isAdminLoggedIn, asyncHandler(getDashboardStats));
 
 export default adminRouter;
