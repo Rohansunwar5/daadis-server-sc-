@@ -37,6 +37,11 @@ export const createProductValidator = [
     // bulletPoints
     isArray("bulletPoints", true),
 
+    // optional pack options
+    isArray("packOptions", true),
+    isNumeric("packOptions.*.packSize", true),
+    isNumeric("packOptions.*.packPrice", true),
+
     // optional category
     isStringOrArrayOfString("category", true),
     isStringOrArrayOfString("subcategory", true),
@@ -66,6 +71,10 @@ export const updateProductValidator = [
     isStringOrArrayOfString("material", true),
     isStringOrArrayOfString("productDetails", true),
     isArray("bulletPoints", true),
+
+    isArray("packOptions", true),
+    isNumeric("packOptions.*.packSize", true),
+    isNumeric("packOptions.*.packPrice", true),
 
     isStringOrArrayOfString("category", true),
     isStringOrArrayOfString("subcategory", true),

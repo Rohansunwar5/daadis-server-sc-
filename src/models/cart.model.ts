@@ -31,6 +31,14 @@ const cartItemSchema = new mongoose.Schema (
             type: String,
             required: true,
         },
+        packSize: {
+            type: Number,
+            default: null,
+        },
+        packPrice: {
+            type: Number,
+            default: null,
+        },
         addedAt: {
             type: Date,
             default: Date.now
@@ -90,6 +98,8 @@ export interface ICartItem extends mongoose.Schema {
     size: string,
     color: ICartItemColor;
     selectedImage: string;
+    packSize?: number | null;
+    packPrice?: number | null;
     addedAt: Date;
 }
 

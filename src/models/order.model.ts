@@ -42,6 +42,10 @@ const orderItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  packSize: {
+    type: Number,
+    default: null,
+  },
   hsn: {
     type: String,
     trim: true,
@@ -321,6 +325,7 @@ export interface IOrderItem {
     colorHex: string;
   };
   selectedImage: string;
+  packSize?: number | null;
   hsn?: string;
   gstRate: number;
 }

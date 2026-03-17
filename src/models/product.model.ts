@@ -30,6 +30,19 @@ const productColorSchema = new mongoose.Schema({
     sizeStock: [sizeStockSchema]
 });
 
+const packOptionSchema = new mongoose.Schema({
+    packSize: {
+        type: Number,
+        required: true,
+        min: 2
+    },
+    packPrice: {
+        type: Number,
+        required: true,
+        min: 0
+    }
+});
+
 const productBulletSchema = new mongoose.Schema({
     point: {
         type: String,
@@ -95,6 +108,7 @@ const productSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        packOptions: [packOptionSchema],
         isActive: {
             type: Boolean,
             default: true,
@@ -120,6 +134,11 @@ export interface IProductBullet {
     order: number;
 }
 
+export interface IPackOption {
+    packSize: number;
+    packPrice: number;
+}
+
 export interface IProduct extends Document {
     _id: string;
     name: string;
@@ -131,6 +150,7 @@ export interface IProduct extends Document {
     material?: string;
     productDetails?: string;
     bulletPoints?: IProductBullet[];
+    packOptions?: IPackOption[];
     category?: string;
     subcategory?: string;
     hsn?: string;

@@ -11,6 +11,8 @@ export interface CartItemInput {
     colorHex: string;
   };
   selectedImage: string;
+  packSize?: number | null;
+  packPrice?: number | null;
 }
 
 export interface UpdateCartItemInput {
@@ -21,6 +23,8 @@ export interface UpdateCartItemInput {
     colorHex: string;
   };
   selectedImage?: string;
+  packSize?: number | null;
+  packPrice?: number | null;
 }
 
 export interface ApplyDiscountInput {
@@ -44,12 +48,18 @@ export class CartRepository {
     }
 
     async addItemToCart(userId: string, item: CartItemInput) {
-        const exisitngCart = await this._model.findOne({
+        const packQuery: any = {
             user: userId,
             'items.product': item.product,
             'items.color.colorName': item.color.colorName,
-            'items.size': item.size
-        });
+            'items.size': item.size,
+        };
+        if (item.packSize != null) {
+            packQuery['items.packSize'] = item.packSize;
+        } else {
+            packQuery['items.packSize'] = { $in: [null, undefined] };
+        }
+        const exisitngCart = await this._model.findOne(packQuery);
 
         if(exisitngCart) {
             return this.updateExistingCartItem(userId, item);
@@ -320,29 +330,42 @@ export class CartRepository {
     }
 
 
-    async checkItemExists(userId: string, productId: string, colorName: string, size: string) {
-        return this._model.findOne({
+    async checkItemExists(userId: string, productId: string, colorName: string, size: string, packSize?: number | null) {
+        const query: any = {
             user: userId,
             'items.product': productId,
             'items.color.colorName': colorName,
-            'items.size': size
-        });
+            'items.size': size,
+        };
+        if (packSize != null) {
+            query['items.packSize'] = packSize;
+        } else {
+            query['items.packSize'] = { $in: [null, undefined] };
+        }
+        return this._model.findOne(query);
     }
 
-    async getCartItem(userId: string, productId: string, colorName: string, size: string) {
-        const cart = await this._model.findOne({
+    async getCartItem(userId: string, productId: string, colorName: string, size: string, packSize?: number | null) {
+        const query: any = {
             user: userId,
             'items.product': productId,
             'items.color.colorName': colorName,
-            'items.size': size
-        });
+            'items.size': size,
+        };
+        if (packSize != null) {
+            query['items.packSize'] = packSize;
+        } else {
+            query['items.packSize'] = { $in: [null, undefined] };
+        }
+        const cart = await this._model.findOne(query);
 
         if (!cart) return null;
 
-        const item = cart.items.find(item => 
+        const item = cart.items.find(item =>
             item.product.toString() === productId &&
             item.color.colorName === colorName &&
-            item.size === size
+            item.size === size &&
+            (packSize != null ? (item as any).packSize === packSize : (item as any).packSize == null)
         );
 
         return item || null;

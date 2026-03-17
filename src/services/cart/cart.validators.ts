@@ -24,11 +24,23 @@ return { product, colorVariant, sizeStock };
 }
 
 
-export function validateSelectedImage(colorVariant: any, selectedImage: string) {
-if (!selectedImage) throw new BadRequestError('Selected image is required');
-if (!Array.isArray(colorVariant.images) || !colorVariant.images.includes(selectedImage)) {
-throw new BadRequestError('Selected image does not belong to this color');
-}
+export function resolveSelectedImage(colorVariant: any, selectedImage?: string): string {
+    const colorImages: string[] = Array.isArray(colorVariant.images) ? colorVariant.images : [];
+
+    // If provided image already belongs to this color variant, keep it
+    if (selectedImage && colorImages.includes(selectedImage)) {
+        return selectedImage;
+    }
+
+    // Otherwise auto-pick the first image of the selected color
+    if (colorImages.length > 0) {
+        return colorImages[0];
+    }
+
+    // Last resort: use whatever was sent (could be a product-level image)
+    if (selectedImage) return selectedImage;
+
+    throw new BadRequestError('No image available for the selected color');
 }
 
 

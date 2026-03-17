@@ -16,6 +16,7 @@ export interface CreateProductParams {
     material?: string;
     productDetails?: string;
     bulletPoints?: { point: string; order?: number }[];
+    packOptions?: { packSize: number; packPrice: number }[];
     category?: string;
     subcategory?: string;
     hsn?: string;
@@ -239,6 +240,7 @@ class ProductRepository {
                     images: 1,
                     price: 1,
                     originalPrice: 1,
+                    packOptions: 1,
                     category: 1,
                     subcategory: 1,
                     },

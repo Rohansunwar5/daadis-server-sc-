@@ -19,7 +19,7 @@ interface IShiprocketOrderItem {
     selling_price: string;
     discount: number;
     tax: number;
-    hsn: string;
+    hsn?: string;
 }
 
 class ShiprocketService {
@@ -68,18 +68,25 @@ class ShiprocketService {
             const orderItems: IShiprocketOrderItem[] = [];
 
             for (const item of order.items) {
-                // HSN is already available on the order item from the cart
-                const hsn = item.hsn || "";
+                const itemName = (item as any).packSize != null
+                    ? `${item.name} (Pack of ${(item as any).packSize})`
+                    : item.name;
 
-                orderItems.push({
-                    name: item.name,
+                const orderItem: IShiprocketOrderItem = {
+                    name: itemName,
                     sku: item.productCode,
                     units: item.quantity,
                     selling_price: item.price.toFixed(2),
                     discount: 0,
                     tax: 0,
-                    hsn: hsn
-                });
+                };
+
+                // Only include HSN when it's a non-empty string; Shiprocket rejects empty strings
+                if (item.hsn && item.hsn.trim() !== '') {
+                    orderItem.hsn = item.hsn.trim();
+                }
+
+                orderItems.push(orderItem);
             }
 
             const packageDetails = this.calculatePackageDetails();

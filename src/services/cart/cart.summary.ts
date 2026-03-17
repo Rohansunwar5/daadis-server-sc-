@@ -17,7 +17,8 @@ return {
         if (!it.product || !it.quantity) return sum;
         const p = productMap[it.product.toString()];
         if (!p) return sum;
-        return sum + p.price * it.quantity;
+        const unitPrice = it.packPrice != null ? it.packPrice : p.price;
+        return sum + unitPrice * it.quantity;
         }, 0);
 
         const discountAmount = (cart.appliedCoupon?.discountAmount || 0) + (cart.appliedVoucher?.discountAmount || 0);
@@ -46,6 +47,7 @@ return {
         .map((it: any) => {
             const p = productMap[it.product.toString()];
 
+            const unitPrice = it.packPrice != null ? it.packPrice : (p ? p.price : 0);
             return {
             _id: it._id,
             product: p
@@ -60,8 +62,10 @@ return {
             size: it.size,
             color: it.color,
             selectedImage: it.selectedImage,
+            packSize: it.packSize ?? null,
+            packPrice: it.packPrice ?? null,
             addedAt: it.addedAt,
-            itemTotal: p ? p.price * it.quantity : 0,
+            itemTotal: p ? unitPrice * it.quantity : 0,
             };
         });
 

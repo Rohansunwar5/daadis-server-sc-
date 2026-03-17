@@ -55,11 +55,16 @@ class OrderService {
         );
       }
 
+      // Use packPrice when a pack was selected, otherwise fall back to product base price
+      const effectivePrice = (item as any).packPrice != null
+        ? (item as any).packPrice
+        : product.price;
+
       validatedItems.push({
         productId: product._id,
         productCode: product.productCode,
         name: product.name,
-        price: product.price,
+        price: effectivePrice,
         quantity: item.quantity,
         size: item.size,
         color: {
@@ -67,6 +72,7 @@ class OrderService {
           colorHex: item.color.colorHex,
         },
         selectedImage: item.selectedImage,
+        packSize: (item as any).packSize ?? null,
         hsn: product.hsn,
         gstRate: 0, // Configure GST rate as needed
       });
