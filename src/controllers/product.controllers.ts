@@ -38,7 +38,15 @@ export const getProductByCode = async (req: Request, res: Response, next: NextFu
 
 // LIST PRODUCTS WITH FILTERS + PAGINATION
 export const listProducts = async (req: Request, res: Response, next: NextFunction) => {
-  const response = await productService.listProducts(req.query);
+  const { page, limit, category, subcategory, search, onlyActive } = req.query;
+  const response = await productService.listProducts({
+    page: Number(page) || 1,
+    limit: Number(limit) || 10,
+    category: category as string | undefined,
+    subcategory: subcategory as string | undefined,
+    search: search as string | undefined,
+    onlyActive: onlyActive === 'true' ? true : undefined,
+  });
   next(response);
 };
 
