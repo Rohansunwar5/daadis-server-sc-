@@ -34,7 +34,7 @@ const packOptionSchema = new mongoose.Schema({
     packSize: {
         type: Number,
         required: true,
-        min: 2
+        min: 1
     },
     packPrice: {
         type: Number,
